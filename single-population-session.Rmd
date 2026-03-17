@@ -1,0 +1,201 @@
+---
+title: Mini Course on Population and Community Ecology @ Okinawa Institute of Science
+  and Technology
+author: "Miguel Lurgi"
+date: "2026-03-17"
+output:
+  html_document: default
+  pdf_document: default
+subtitle: 'Lecture notes for session 1: Single population growth'
+---
+
+<style type="text/css">
+  body{
+  font-size: 12pt;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In ecology we are interested in studying the dynamics (i.e. changes in numbers through time) of natural populations. There are several motivations to do this, amongst them: (1) a better understanding of the factors influencing populations and (2) making useful and informed predictions for conservation and management.
+
+When modelling populations we are going to think about them in terms of **variables** and **functions** acting on these variables. We will focus on the abundance of populations as our variable of interest.
+
+We will call that variable $N$.
+
+## Exponential Growth
+
+The simplest model of population dynamics is **exponential growth**.
+
+Exponential growth happens when each individual of the population subject of study creates a number of offspring larger than 1 during each reproductive time step.
+
+The general mathematical formula that formalises this process is:
+
+$$N_{t+1} = R * N_t$$
+
+Where $N_t$ represents the size of the population (either number of individuals, biomass, density, or any other measure), $N$, at time $t$. 
+
+On the other hand, $R$ represents the **finite rate of population increase**, or in terms of number of individuals, the (mean) number of offspring each member of the population produces per time step. 
+
+**Assumption:** This model assumes total population replacement (i.e. all parents die after reproducing). Due to this assumption, this model is most appropriate for species **with non-overlapping generations** (e.g. many insects).
+
+Thus, this equation tells us that the population at time $t+1$ equals the population at time $t$ multiplied by the finite rate of increase $R$.
+
+If $R$ is set to 2, for example, the population doubles each time step. If $R = 0.5$, it will half every time step. Let’s translate the equation above from its mathematical form into a language understandable by our computers, in our case, R.
+
+In R, we write the exponential equation above thus:
+
+```{r model}
+# Exponential population growth equation
+# N[t+1] <- R*N[t]
+```
+
+For this code to work we need to have a vector to store our initial values of $N$ (the variable we are keeping track of).
+
+We additionally need to **define parameter** $R$ and also an extra variable $tsteps$ that will tell the program for how many time steps we want to run our model 
+
+```{r run-the-model}
+# Exponential population growth equation
+N <- matrix(0, nrow=10, ncol=1)
+R <- 2					# finite rate of increase
+N[1] <- 1					# Initial population size
+tsteps <- 10				# Length of time series
+
+for(t in 1:(tsteps-1)){
+	N[t+1] <- R*N[t]
+}
+
+# And now we plot the outcome: remembering to add axes labels
+# type = ‘b’ plots both lines and symbols
+plot(N, xlab = 'Time', ylab = 'Population size', type='b')
+
+```
+
+## What might be wrong with our model?
+
+In nature, populations do not grow exponentially. They are normally limited by ecological processes such as **competition for resources or space**.
+
+To account for these phenomena, we need to modify our models and make them a bit more realistic. One way of achieving this is be modifying the population growth function we saw above by making the growth rate itself a **function of population density**.
+
+This gives rise to a different kind of population growth models, which in their general form can be written as:
+
+$$N_{t+1} = N_t * f(N_t)$$
+
+## Density-Dependent Population Growth
+
+In density-dependent population models, we commonly use saturating logistic functions of $N$ to reflect the fact that populations under density-dependent growth are drawn towards an **equilibrium** population value that is called the **carrying capacity** ($K$). This parameter is key in this type of models and you can think of it as the maximum number of individuals of that population that the environment can "sustain".
+
+One of the most popular logistic models for population growth is the [**Ricker model**](https://en.wikipedia.org/wiki/Ricker_model), after the author of an influential paper illustrating its application in the context of fisheries (Ricker (1954), ***Journal of the Fisheries Research Board of Canada*** 11: 559–623.).
+
+It is specified by the following equation:
+
+$$N_{t+1} = N_t*e^{r\left(1-\frac{N_t}{K}\right)}$$
+Now, let's try to write the code in R that will help us calculate the temporal dynamics (i.e. changes in numbers through time) of a model population.
+
+```{r ricker-model}
+# Simulating the Ricker population growth function over 40 time-steps
+
+r <- 2.9				# Intrinsic Growth Rate
+K <- 20				# Carrying Capacity
+Tmax <- 40			# Maximum simulation time
+
+N <- matrix(0, nrow = Tmax, ncol = 1)	# Pre-allocate population vector
+N[1] <- 1						# Initialise population size
+
+# Simulate Ricker population growth over time
+for (t in 1:(Tmax-1)) {
+	N[t+1] <- N[t]*exp(r*(1-N[t]/K))
+}
+
+plot(N, type = 'l', lwd = 2, xlab = 'Time, t', ylab = 'Population size, N(t)')
+
+
+```
+
+
+We can analyse the outcome of the population dynamics modelled using the Ricker equation (and any other population dynamics for that matter) in different ways.
+
+## Functional form of Density Dependence
+
+The functional form of the density dependence can give us clues about how the growth rate of the population changes as the population changes. For this we can look at the **per-capita growth rate** as a function of population size.
+
+```{r pgr}
+
+# Plot the current vs future population sizes, N[t] vs N[t+1]
+plot(N[1:(Tmax-1)], N[2:Tmax], pch = 16, xlab = "Current Population Size, N[t]", ylab = "Future Population Size, N[t+1]")
+
+# Plot the density dependent functional form for per-capita growth
+# Use abline() to add a dashed, black line to the points
+plot(N[1:(Tmax-1)], diff(log(N)), pch = 16, xlab = 'Current Population Size, N[t]', ylab = 'per-capita growth rate, log( N[t+1]/N[t] )') 
+abline(r, -r/K, lwd = 2, lty = 2)
+abline(h=0, lty=2, col='red')
+
+```
+
+Plotting a straight line with intercept r and slope -r/K, illustrates how the density dependent relationship relates to the **demographic parameters**.
+
+Note that **the intercept of the straight line on the y-axis corresponds to r** (i.e., the maximum reproductive output when there is no competition: 0 individuals on the x-axis) and **the intercept on the x-axis (where the line crosses for y = 0) corresponds to the carrying capacity K** = 20. 
+
+The slope of this line is found by multiplying through the pgr term in the Ricker equation, which is **equivalent to the equation of a straight line: a + bx**, where r = a (intercept), -r/K = b (slope; note the negative symbol in front of the r!) and N = x.
+
+
+## Bifurcation diagram
+
+Logistic models like the Ricker equation above are capable of producing very **interesting and complicated dynamics**, including chaotic ones. Ecologists are sometimes interested in understanding the conditions under which populations might change their "behaviour", i.e. the qualitative shape of the dynamics they produce. For example, systems might either reach a **single point equilibrium**, or **fluctuate between values in a cycle** or even yield seemingly **unpredictable dynamics** depending on parameter values.
+
+Below are some examples of this:
+
+```{r dynamics}
+r.values <- seq(0.2, 3.5, length.out = 101) 	# r-values examined
+K <- 20								# Carrying Capacity
+Tmax <- 100							# Length of simulations
+
+N <- matrix(0, length(r.values), Tmax)			# Pre-allocate N
+N[,1] <- 1
+
+for (i in 1:length(r.values)){
+	r <- r.values[i]			# Select the i-th r-value to examine
+	for (t in 1:(Tmax-1)) {
+		N[i, t+1] <- N[i, t]*exp(r*(1- N[i, t]/K))
+	}
+}
+
+plot(N[1,], type = 'l', ylim = c(0, 70), ylab='Population size', xlab='Time')
+lines(N[60,], col = "red")
+lines(N[101,], col = "blue")
+```
+
+One way of visualizing this possible set of outcomes is to vary the value of a specific parameter and look at each individual final result in a single plot. In our case, trying different values of r (the intrinsic growth rate) and looking at how many different population sizes the model goes through after the initial transient dynamics.
+
+```{r bifurcation}
+r.values <- seq(1.5, 3.5, length.out = 200) 	# r-values examined
+K <- 20								  # Carrying Capacity
+Tmax <- 500							# Length of simulations
+
+N <- matrix(0, length(r.values), Tmax)			# Pre-allocate N
+N[,1] <- 1								                  # Initiate all N[1] = 1
+
+for (i in 1:length(r.values)){
+	r <- r.values[i]			# Select the i-th r-value to examine
+	for (t in 1:(Tmax-1)) {
+		N[i, t+1] <- N[i, t]*exp(r*(1- N[i, t]/K))
+	}
+}
+
+# Bifurcation plot showing temporal dynamics across different r-values
+# ‘cex’ reduces the point size.
+matplot(r.values, N[, 401:500], pch = 16, cex = 0.25, xlab = "r-value", ylab = "Population size over time")
+
+```
+
+This behaviour has been extensively studied across systems in a more general form, the **logistic map**:
+
+$$x_{n+1} = rx_n(1-x_n)$$
+**Check it out here!**
+
+[https://www.youtube.com/watch?v=ovJcsL7vyrk](https://www.youtube.com/watch?v=ovJcsL7vyrk)
+
+
